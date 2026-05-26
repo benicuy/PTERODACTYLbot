@@ -615,50 +615,692 @@
     let botTemplates = JSON.parse(localStorage.getItem('botcraft_full_templates')) || {
         whatsapp: {
             index: `// WhatsApp Bot Template
-const { Client, LocalAuth } = require('whatsapp-web.js');
-const qrcode = require('qrcode-terminal');
+const { 
+    default: makeWASocket, 
+    useMultiFileAuthState, 
+    DisconnectReason,
+    makeInMemoryStore,
+    Browsers
+} = require('@whiskeysockets/baileys');
+const { Boom } = require('@whiskeysockets/baileys');
+const fs = require('fs-extra');
+const pino = require('pino');
+const readline = require('readline');
 const config = require('./config');
 
-const client = new Client({
-    authStrategy: new LocalAuth({ dataPath: './sessions' })
+// Store untuk menyimpan data
+const store = makeInMemoryStore({ logger: pino().child({ level: 'silent' }) });
+
+// Data spam user
+const userMessages = new Map();
+
+// Data owner
+let owners = [...config.owners];
+
+// Setup readline untuk pairing code
+const rl = readline.createInterface({
+    input: process.stdin,
+    output: process.stdout
 });
 
-client.on('qr', (qr) => {
-    console.log('📱 Scan QR Code:');
-    qrcode.generate(qr, { small: true });
-});
+function question(text) {
+    return new Promise((resolve) => {
+        rl.question(text, resolve);
+    });
+}
 
-client.on('ready', () => {
-    console.log('✅ Bot WhatsApp siap!');
-    console.log(\`Prefix: \${config.prefix}\`);
-});
-
-client.on('message', async (msg) => {
-    if (msg.fromMe) return;
-    if (msg.body.startsWith(config.prefix + 'ping')) {
-        await msg.reply('🏓 Pong!');
+// Fungsi untuk mengecek spam
+function checkSpam(sender) {
+    if (!config.antiSpam) return false;
+    
+    const now = Date.now();
+    const userData = userMessages.get(sender) || { messages: [], lastWarn: 0 };
+    
+    // Filter pesan dalam 1 menit terakhir
+    userData.messages = userData.messages.filter(time => now - time < 60000);
+    userData.messages.push(now);
+    
+    userMessages.set(sender, userData);
+    
+    // Cek jika melebihi batas
+    if (userData.messages.length > config.maxMessagePerMinute) {
+        if (now - userData.lastWarn > 60000) {
+            userData.lastWarn = now;
+            userMessages.set(sender, userData);
+            return true;
+        }
     }
-    if (msg.body.startsWith(config.prefix + 'info')) {
-        await msg.reply(\`🤖 Bot Active\\nPrefix: \${config.prefix}\\nOwner: \${config.ownerId}\`);
+    return false;
+}
+
+// Fungsi untuk mengecek link
+function containsLink(text) {
+    if (!config.antiLink) return false;
+    if (!text || typeof text !== 'string') return false;
+    
+    const lowerText = text.toLowerCase();
+    
+    // Cek semua domain yang diblokir
+    for (const domain of config.blockedDomains) {
+        if (lowerText.includes(domain.toLowerCase())) {
+            return true;
+        }
     }
+    
+    // Regex untuk mendeteksi URL
+    const urlRegex = /(https?:\/\/[^\s]+)/gi;
+    if (urlRegex.test(text)) {
+        return true;
+    }
+    
+    return false;
+}
+
+// Fungsi untuk mendapatkan nama nomor
+function getNumber(jid) {
+    return jid.split('@')[0];
+}
+
+// Fungsi untuk save owner ke file
+function saveOwners() {
+    try {
+        fs.writeJsonSync('./owners.json', { owners }, { spaces: 2 });
+    } catch (error) {
+        console.error('Error saving owners:', error);
+    }
+}
+
+// Fungsi untuk load owner dari file
+function loadOwners() {
+    try {
+        if (fs.existsSync('./owners.json')) {
+            const data = fs.readJsonSync('./owners.json');
+            owners = data.owners;
+            console.log('✅ Owner list loaded:', owners.map(o => getNumber(o)).join(', '));
+        }
+    } catch (error) {
+        console.error('Error loading owners:', error);
+    }
+}
+
+// Fungsi untuk mempromote user
+async function promoteUser(sock, chatId, userId) {
+    try {
+        await sock.groupParticipantsUpdate(chatId, [userId], 'promote');
+        return true;
+    } catch (error) {
+        console.error('Error promote:', error);
+        return false;
+    }
+}
+
+// Fungsi untuk mendemote user
+async function demoteUser(sock, chatId, userId) {
+    try {
+        await sock.groupParticipantsUpdate(chatId, [userId], 'demote');
+        return true;
+    } catch (error) {
+        console.error('Error demote:', error);
+        return false;
+    }
+}
+
+// Fungsi untuk kick user
+async function kickUser(sock, chatId, userId, reason = '') {
+    try {
+        await sock.groupParticipantsUpdate(chatId, [userId], 'remove');
+        return true;
+    } catch (error) {
+        console.error('Error kick:', error);
+        return false;
+    }
+}
+
+// Fungsi untuk handle anti link
+async function handleAntiLink(sock, chatId, sender, msg, text) {
+    if (!config.antiLink) return false;
+    if (!chatId.endsWith('@g.us')) return false;
+    
+    // Cek apakah mengandung link
+    if (containsLink(text)) {
+        try {
+            // Cek apakah pengirim admin
+            const groupMetadata = await sock.groupMetadata(chatId);
+            const participant = groupMetadata.participants.find(p => p.id === sender);
+            const isAdmin = participant && (participant.admin === 'admin' || participant.admin === 'superadmin');
+            
+            // Jika admin, biarkan saja
+            if (isAdmin) return false;
+            
+            // Hapus pesan yang mengandung link
+            await sock.sendMessage(chatId, { delete: msg.key });
+            
+            // Kirim peringatan
+            await sock.sendMessage(chatId, { 
+                text: `⚠️ @${getNumber(sender)} ${config.messages.antiLink}`,
+                mentions: [sender]
+            });
+            
+            // Jika setting antiLinkKick aktif, langsung kick
+            if (config.antiLinkKick) {
+                // Tunggu sebentar sebelum kick
+                await new Promise(resolve => setTimeout(resolve, 2000));
+                const kicked = await kickUser(sock, chatId, sender, 'Mengirim link terlarang');
+                
+                if (kicked) {
+                    await sock.sendMessage(chatId, { 
+                        text: `👢 @${getNumber(sender)} ${config.messages.kicked}`,
+                        mentions: [sender]
+                    });
+                }
+            }
+            
+            return true;
+        } catch (error) {
+            console.error('Error in anti-link handler:', error);
+            return false;
+        }
+    }
+    return false;
+}
+
+// Fungsi untuk membuat delay
+function delay(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+// Main function dengan pairing code
+async function startBot() {
+    console.log('\n========================================');
+    console.log('     🤖 WHATSAPP BOT GUARD GROUP 🤖');
+    console.log('========================================\n');
+    
+    const { state, saveCreds } = await useMultiFileAuthState('auth_info_baileys');
+    
+    console.log('🔐 Menginisialisasi koneksi dengan Pairing Code...');
+    console.log('🌐 Browser: Ubuntu Chrome (Stable Version)\n');
+    
+    const sock = makeWASocket({
+        auth: state,
+        printQRInTerminal: false, // Matikan QR code
+        browser: Browsers.ubuntu('Chrome'), // Browser Ubuntu Stable
+        logger: pino({ level: 'silent' }),
+        generateHighQualityLinkPreview: true,
+        patchMessageBeforeSending: (message) => {
+            const requiresPatch = !!(
+                message.buttonsMessage ||
+                message.listMessage ||
+                message.templateMessage ||
+                message.templateButtonReplyMessage
+            );
+            if (requiresPatch) {
+                message = {
+                    viewOnceMessage: {
+                        message: {
+                            messageContextInfo: {
+                                deviceListMetadataVersion: 2,
+                                deviceListMetadata: {},
+                            },
+                            ...message,
+                        },
+                    },
+                };
+            }
+            return message;
+        },
+        getMessage: async (key) => {
+            const msg = await store.loadMessage(key.remoteJid, key.id);
+            return msg?.message || undefined;
+        }
+    });
+    
+    store.bind(sock.ev);
+    
+    // Request pairing code jika belum terdaftar
+    if (!sock.authState.creds.registered) {
+        console.log('📱 Menggunakan metode Pairing Code...\n');
+        const phoneNumber = await question('📱 Masukkan nomor WhatsApp Anda (contoh: 6281234567890): ');
+        
+        if (!phoneNumber) {
+            console.log('❌ Nomor tidak boleh kosong!');
+            process.exit(1);
+        }
+        
+        console.log('\n⏳ Meminta kode pairing ke WhatsApp...');
+        
+        try {
+            // Request pairing code
+            const code = await sock.requestPairingCode(phoneNumber);
+            console.log('\n========================================');
+            console.log(`🔑 KODE PAIRING ANDA: ${code}`);
+            console.log('========================================');
+            console.log('\n✅ Langkah selanjutnya:');
+            console.log('1. Buka WhatsApp di HP');
+            console.log('2. Pergi ke Settings > Perangkat Tertaut');
+            console.log('3. Tap "Tautkan Perangkat"');
+            console.log('4. Masukkan kode pairing di atas');
+            console.log('========================================\n');
+        } catch (error) {
+            console.error('❌ Gagal mendapatkan kode pairing:', error.message);
+            console.log('💡 Pastikan nomor WhatsApp benar dan terdaftar!');
+            process.exit(1);
+        }
+    } else {
+        console.log('✅ Menggunakan sesi yang sudah tersimpan...');
+    }
+    
+    loadOwners();
+    
+    sock.ev.on('connection.update', async (update) => {
+        const { connection, lastDisconnect, qr } = update;
+        
+        if (connection === 'close') {
+            const statusCode = (lastDisconnect.error)?.output?.statusCode;
+            const shouldReconnect = statusCode !== DisconnectReason.loggedOut;
+            
+            if (statusCode === DisconnectReason.loggedOut) {
+                console.log('❌ Session expired! Menghapus auth dan memulai ulang...');
+                await fs.remove('auth_info_baileys');
+                console.log('✅ Silakan jalankan ulang bot untuk pairing ulang!');
+                process.exit(0);
+            } else {
+                console.log('🔄 Koneksi terputus, mencoba menyambung ulang dalam 5 detik...');
+                await delay(5000);
+                if (shouldReconnect) {
+                    startBot();
+                }
+            }
+        } else if (connection === 'open') {
+            console.log('\n✅═══════════════════════════════════════════');
+            console.log('     🟢 BOT BERHASIL TERHUBUNG! 🟢');
+            console.log('═══════════════════════════════════════════\n');
+            console.log('📱 Informasi Bot:');
+            console.log(`   • Status: Online`);
+            console.log(`   • Browser: Ubuntu Chrome (Stable)`);
+            console.log(`   • Pairing Code: Active`);
+            console.log(`   • Owner: ${owners.map(o => getNumber(o)).join(', ')}`);
+            console.log('\n🛡️ Konfigurasi Fitur:');
+            console.log(`   • Anti Link: ${config.antiLink ? '✅ ON' : '❌ OFF'}`);
+            console.log(`   • Mode Anti Link: ${config.antiLinkKick ? '🔥 KICK (Langsung keluarkan)' : '🗑️ DELETE (Hapus pesan saja)'}`);
+            console.log(`   • Anti Spam: ${config.antiSpam ? '✅ ON' : '❌ OFF'}`);
+            console.log(`   • Max Pesan/Menit: ${config.maxMessagePerMinute}`);
+            console.log('\n💬 Command yang tersedia:');
+            console.log(`   • ${config.prefix}help - Menampilkan semua perintah`);
+            console.log(`   • ${config.prefix}ping - Test bot`);
+            console.log('\n═══════════════════════════════════════════\n');
+            
+            // Kirim pesan welcome ke semua grup yang bot ikuti
+            try {
+                const groups = await sock.groupFetchAllParticipating();
+                for (const groupId in groups) {
+                    await delay(1000);
+                    await sock.sendMessage(groupId, { 
+                        text: `🤖 *BOT GUARD GROUP AKTIF*\n\n${config.messages.welcome}\n\n📋 *Aturan Grup:*\n• Dilarang mengirim link (akan langsung dikick)\n• Dilarang spam\n• Patuhi peraturan admin\n\nGunakan ${config.prefix}help untuk melihat perintah bot.` 
+                    });
+                }
+            } catch (error) {
+                console.log('⚠️ Gagal mengirim pesan welcome ke grup');
+            }
+        }
+    });
+    
+    sock.ev.on('creds.update', saveCreds);
+    
+    // Handler pesan
+    sock.ev.on('messages.upsert', async ({ messages, type }) => {
+        if (type !== 'notify') return;
+        
+        const msg = messages[0];
+        if (!msg.message || msg.key.fromMe) return;
+        
+        const chatId = msg.key.remoteJid;
+        const sender = msg.key.participant || chatId;
+        
+        // Ambil teks dari berbagai tipe pesan
+        let text = '';
+        if (msg.message.conversation) text = msg.message.conversation;
+        else if (msg.message.extendedTextMessage?.text) text = msg.message.extendedTextMessage.text;
+        else if (msg.message.imageMessage?.caption) text = msg.message.imageMessage.caption;
+        else if (msg.message.videoMessage?.caption) text = msg.message.videoMessage.caption;
+        else if (msg.message.documentMessage?.caption) text = msg.message.documentMessage.caption;
+        
+        // Cek anti link (prioritas utama)
+        const isLinkDetected = await handleAntiLink(sock, chatId, sender, msg, text);
+        if (isLinkDetected) return; // Jika link terdeteksi, skip proses lainnya
+        
+        // Cek spam (setelah anti link)
+        if (checkSpam(sender)) {
+            await sock.sendMessage(chatId, { text: config.messages.antiSpam });
+            await sock.sendMessage(chatId, { delete: msg.key });
+            return;
+        }
+        
+        // Handle command
+        if (text.startsWith(config.prefix)) {
+            const args = text.slice(config.prefix.length).trim().split(/ +/);
+            const command = args.shift().toLowerCase();
+            
+            // Cek apakah user adalah admin grup (untuk perintah yang butuh admin)
+            let isAdmin = false;
+            let isOwner = owners.includes(sender);
+            let groupMetadata = null;
+            
+            if (chatId.endsWith('@g.us')) {
+                try {
+                    groupMetadata = await sock.groupMetadata(chatId);
+                    const participant = groupMetadata.participants.find(p => p.id === sender);
+                    isAdmin = participant && (participant.admin === 'admin' || participant.admin === 'superadmin');
+                } catch (error) {
+                    console.error('Error getting group metadata:', error);
+                }
+            }
+            
+            // Command: promote
+            if (command === 'promote') {
+                if (!isAdmin && !isOwner) {
+                    await sock.sendMessage(chatId, { text: config.messages.notAdmin });
+                    return;
+                }
+                
+                const mentionedUser = msg.message.extendedTextMessage?.contextInfo?.mentionedJid?.[0];
+                if (!mentionedUser) {
+                    await sock.sendMessage(chatId, { text: `❌ Tag user yang ingin dipromote!\nContoh: ${config.prefix}promote @user` });
+                    return;
+                }
+                
+                const success = await promoteUser(sock, chatId, mentionedUser);
+                await sock.sendMessage(chatId, { 
+                    text: success ? config.messages.promote : '❌ Gagal mempromote user!' 
+                });
+            }
+            
+            // Command: demote
+            else if (command === 'demote') {
+                if (!isAdmin && !isOwner) {
+                    await sock.sendMessage(chatId, { text: config.messages.notAdmin });
+                    return;
+                }
+                
+                const mentionedUser = msg.message.extendedTextMessage?.contextInfo?.mentionedJid?.[0];
+                if (!mentionedUser) {
+                    await sock.sendMessage(chatId, { text: `❌ Tag user yang ingin diturunkan!\nContoh: ${config.prefix}demote @user` });
+                    return;
+                }
+                
+                const success = await demoteUser(sock, chatId, mentionedUser);
+                await sock.sendMessage(chatId, { 
+                    text: success ? config.messages.demote : '❌ Gagal menurunkan user!' 
+                });
+            }
+            
+            // Command: kick
+            else if (command === 'kick') {
+                if (!isAdmin && !isOwner) {
+                    await sock.sendMessage(chatId, { text: config.messages.notAdmin });
+                    return;
+                }
+                
+                const mentionedUser = msg.message.extendedTextMessage?.contextInfo?.mentionedJid?.[0];
+                if (!mentionedUser) {
+                    await sock.sendMessage(chatId, { text: `❌ Tag user yang ingin dikick!\nContoh: ${config.prefix}kick @user` });
+                    return;
+                }
+                
+                const success = await kickUser(sock, chatId, mentionedUser);
+                await sock.sendMessage(chatId, { 
+                    text: success ? '✅ Berhasil mengeluarkan user!' : '❌ Gagal mengeluarkan user!' 
+                });
+            }
+            
+            // Command: addowner
+            else if (command === 'addowner') {
+                if (!isOwner) {
+                    await sock.sendMessage(chatId, { text: config.messages.notOwner });
+                    return;
+                }
+                
+                let newOwner = args[0];
+                if (!newOwner) {
+                    await sock.sendMessage(chatId, { text: `❌ Masukkan nomor owner baru!\nContoh: ${config.prefix}addowner 6281234567890` });
+                    return;
+                }
+                
+                // Format nomor
+                newOwner = newOwner.replace(/[^0-9]/g, '');
+                if (!newOwner.startsWith('62')) {
+                    newOwner = '62' + newOwner;
+                }
+                newOwner = newOwner + '@s.whatsapp.net';
+                
+                if (!owners.includes(newOwner)) {
+                    owners.push(newOwner);
+                    saveOwners();
+                    await sock.sendMessage(chatId, { text: `✅ Berhasil menambahkan owner baru: ${getNumber(newOwner)}` });
+                } else {
+                    await sock.sendMessage(chatId, { text: '❌ Nomor sudah menjadi owner!' });
+                }
+            }
+            
+            // Command: removeowner
+            else if (command === 'removeowner') {
+                if (!isOwner) {
+                    await sock.sendMessage(chatId, { text: config.messages.notOwner });
+                    return;
+                }
+                
+                let removeOwner = args[0];
+                if (!removeOwner) {
+                    await sock.sendMessage(chatId, { text: `❌ Masukkan nomor owner yang akan dihapus!\nContoh: ${config.prefix}removeowner 6281234567890` });
+                    return;
+                }
+                
+                removeOwner = removeOwner.replace(/[^0-9]/g, '');
+                if (!removeOwner.startsWith('62')) {
+                    removeOwner = '62' + removeOwner;
+                }
+                removeOwner = removeOwner + '@s.whatsapp.net';
+                
+                const index = owners.indexOf(removeOwner);
+                if (index !== -1 && removeOwner !== config.owners[0]) {
+                    owners.splice(index, 1);
+                    saveOwners();
+                    await sock.sendMessage(chatId, { text: `✅ Berhasil menghapus owner: ${getNumber(removeOwner)}` });
+                } else {
+                    await sock.sendMessage(chatId, { text: '❌ Gagal menghapus owner! Pastikan nomor valid dan bukan owner utama.' });
+                }
+            }
+            
+            // Command: listowner
+            else if (command === 'listowner') {
+                const ownerList = owners.map(o => `• ${getNumber(o)}`).join('\n');
+                await sock.sendMessage(chatId, { text: `${config.messages.ownerList}\n${ownerList}` });
+            }
+            
+            // Command: setting anti link kick
+            else if (command === 'antilinkmode') {
+                if (!isOwner) {
+                    await sock.sendMessage(chatId, { text: config.messages.notOwner });
+                    return;
+                }
+                
+                const mode = args[0];
+                if (mode === 'kick') {
+                    config.antiLinkKick = true;
+                    await sock.sendMessage(chatId, { text: '✅ Mode anti link: *KICK* - Pengirim link akan langsung dikeluarkan!' });
+                } else if (mode === 'delete') {
+                    config.antiLinkKick = false;
+                    await sock.sendMessage(chatId, { text: '✅ Mode anti link: *DELETE* - Link akan dihapus tanpa mengeluarkan member!' });
+                } else {
+                    await sock.sendMessage(chatId, { text: `❌ Gunakan: ${config.prefix}antilinkmode kick atau ${config.prefix}antilinkmode delete` });
+                }
+            }
+            
+            // Command: ping (test bot)
+            else if (command === 'ping') {
+                const start = Date.now();
+                await sock.sendMessage(chatId, { text: '🏓 Pong! Menghitung ping...' });
+                const end = Date.now();
+                await sock.sendMessage(chatId, { text: `🏓 Pong! Response time: ${end - start}ms` });
+            }
+            
+            // Command: help
+            else if (command === 'help') {
+                const helpText = `🤖 *BOT GUARD GROUP* 🤖
+
+━━━━━━━━━━━━━━━━━━━━━━
+*📋 COMMANDS*
+━━━━━━━━━━━━━━━━━━━━━━
+
+*Admin Commands:*
+• ${config.prefix}promote @user - Promote user jadi admin
+• ${config.prefix}demote @user - Turunkan user dari admin  
+• ${config.prefix}kick @user - Keluarkan user dari grup
+
+*Owner Commands:*
+• ${config.prefix}addowner 62xxx - Tambah owner baru
+• ${config.prefix}removeowner 62xxx - Hapus owner
+• ${config.prefix}listowner - Lihat daftar owner
+• ${config.prefix}antilinkmode kick/delete - Ganti mode anti link
+
+*General:*
+• ${config.prefix}ping - Test bot
+• ${config.prefix}help - Bantuan ini
+
+━━━━━━━━━━━━━━━━━━━━━━
+*🛡️ AUTO PROTECTION*
+━━━━━━━━━━━━━━━━━━━━━━
+
+🔗 *Anti Link*: ${config.antiLinkKick ? 'KICK (Langsung dikeluarkan)' : 'DELETE (Hapus pesan)'}
+• Non-admin yang kirim link akan ${config.antiLinkKick ? 'dikeluarkan otomatis' : 'dihapus pesannya'}
+
+📊 *Anti Spam*: ${config.antiSpam ? 'AKTIF' : 'NONAKTIF'}
+• Maksimal ${config.maxMessagePerMinute} pesan per menit
+
+━━━━━━━━━━━━━━━━━━━━━━
+*ℹ️ INFO*
+━━━━━━━━━━━━━━━━━━━━━━
+
+• Owner: ${owners.map(o => getNumber(o)).join(', ')}
+• Prefix: ${config.prefix}
+• Browser: Ubuntu Chrome Stable
+• Pairing Code: Active
+
+━━━━━━━━━━━━━━━━━━━━━━`;
+                
+                await sock.sendMessage(chatId, { text: helpText });
+            }
+            
+            // Command: info (alias untuk help)
+            else if (command === 'info') {
+                const infoText = `📊 *STATUS BOT*
+
+🤖 *Bot Info:*
+• Status: Online 🟢
+• Browser: Ubuntu Chrome Stable
+• Authentication: Pairing Code
+
+🛡️ *Protection Status:*
+• Anti Link: ${config.antiLink ? 'ON' : 'OFF'} ${config.antiLinkKick ? '(Kick Mode)' : '(Delete Mode)'}
+• Anti Spam: ${config.antiSpam ? 'ON' : 'OFF'}
+
+👑 *Owners:*
+${owners.map(o => `• ${getNumber(o)}`).join('\n')}
+
+📊 *Total Groups: ${Object.keys(await sock.groupFetchAllParticipating()).length}*
+
+Gunakan ${config.prefix}help untuk bantuan lengkap!`;
+                
+                await sock.sendMessage(chatId, { text: infoText });
+            }
+        }
+    });
+}
+
+// Handle process exit
+process.on('SIGINT', async () => {
+    console.log('\n\n⚠️ Mematikan bot...');
+    rl.close();
+    process.exit(0);
 });
 
-client.initialize();
-console.log('🚀 Bot WhatsApp berjalan...');`,
+// Handle uncaught errors
+process.on('uncaughtException', (error) => {
+    console.error('Uncaught Exception:', error);
+});
+
+process.on('unhandledRejection', (error) => {
+    console.error('Unhandled Rejection:', error);
+});
+
+// Jalankan bot
+startBot().catch(err => {
+    console.error('❌ Fatal error starting bot:', err);
+    process.exit(1);
+});,
             config: `module.exports = {
-    prefix: "!",
-    ownerId: "6281234567890",
-    sessionName: "wa-session"
+   module.exports = {
+    // Owner bot (nomor yang punya akses full)
+    owners: ['6281234567890@s.whatsapp.net'], // Ganti dengan nomor owner
+
+    // Prefix command
+    prefix: '.',
+
+    // Settings
+    antiLink: true, // Aktifkan anti link
+    antiLinkKick: true, // Jika true langsung kick, jika false hanya hapus pesan
+    antiSpam: true, // Aktifkan anti spam
+    maxMessagePerMinute: 10, // Maksimal pesan per menit
+
+    // List link yang dilarang (bisa ditambah)
+    blockedDomains: [
+        'https://', 'http://',
+        'bit.ly', 'tinyurl.com', 'shorturl.at',
+        'chat.whatsapp.com', // Link invite grup
+        'youtube.com', 'youtu.be',
+        'instagram.com', 'facebook.com', 'fb.com',
+        'tiktok.com', 'twitter.com', 'x.com',
+        'wa.me', 'line.me', 'telegram.org',
+        'discord.gg', 'discord.com/invite'
+    ],
+
+    // Message responses
+    messages: {
+        antiLink: '❌ *LINK TERDETEKSI!*\nMaaf, dilarang mengirim link di grup ini!\nAnda akan segera dikeluarkan dari grup!',
+        antiLinkWarning: '⚠️ *PERINGATAN TERAKHIR!*\nJangan mengirim link lagi atau Anda akan dikeluarkan!',
+        antiSpam: '⚠️ *SPAM TERDETEKSI!*\nAnda mengirim pesan terlalu cepat!',
+        promote: '✅ *BERHASIL!*\nUser berhasil dipromosikan menjadi admin!',
+        demote: '✅ *BERHASIL!*\nUser berhasil diturunkan dari admin!',
+        notAdmin: '❌ *GAGAL!*\nKamu bukan admin grup!',
+        notOwner: '❌ *GAGAL!*\nPerintah ini hanya untuk owner bot!',
+        invalidNumber: '❌ Nomor tidak valid!',
+        addOwnerSuccess: '✅ Berhasil menambahkan owner baru!',
+        removeOwnerSuccess: '✅ Berhasil menghapus owner!',
+        ownerList: '📋 *DAFTAR OWNER BOT:*\n',
+        kicked: '👢 *DIKELUARKAN DARI GRUP!*\nKarena mengirim link yang dilarang!',
+        welcome: '🤖 *BOT GUARD AKTIF*\nBot siap menjaga grup dari link berbahaya dan spam!'
+    }
+};
 };`,
             package: `{
-    "name": "whatsapp-bot",
-    "version": "1.0.0",
-    "description": "WhatsApp Bot dari BotCraft Pro",
-    "main": "index.js",
-    "scripts": { "start": "node index.js" },
-    "dependencies": {
-        "whatsapp-web.js": "^1.23.0",
-        "qrcode-terminal": "^0.12.0"
+    {
+  "name": "whatsapp-bot-guard",
+  "version": "1.0.0",
+  "description": "Bot untuk menjaga grup WhatsApp",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "@whiskeysockets/baileys": "^6.6.0",
+    "qrcode-terminal": "^0.12.0",
+    "pino": "^8.15.0",
+    "fs-extra": "^11.1.1",
+    "readline": "^1.3.0"
+  },
+  "keywords": ["whatsapp-bot", "baileys", "group-guard"],
+  "author": "Your Name",
+  "license": "ISC"
+}
     }
 }`
         },
