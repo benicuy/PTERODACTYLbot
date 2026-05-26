@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
-    <title>BotCraft Pro | Admin Panel + Custom Bot Code + Premium</title>
+    <title>BotCraft Pro | Admin Panel + Custom Template (index.js, config.js, package.json)</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <style>
         * {
@@ -85,10 +85,6 @@
             color: white;
             font-size: 0.9rem;
         }
-        .input-group input:focus {
-            outline: none;
-            border-color: #a855f7;
-        }
         .btn-primary {
             width: 100%;
             background: linear-gradient(90deg, #7C3AED, #A855F7);
@@ -169,7 +165,6 @@
             gap: 1.5rem;
         }
 
-        /* Panel */
         .panel {
             background: rgba(18, 25, 45, 0.7);
             backdrop-filter: blur(12px);
@@ -234,7 +229,7 @@
             margin-bottom: 0.2rem;
             color: #cbd5ff;
         }
-        .input-group-sm input, .input-group-sm textarea, .input-group-sm select {
+        .input-group-sm input, .input-group-sm textarea {
             width: 100%;
             background: #0f1422;
             border: 1px solid #2d3a5e;
@@ -248,16 +243,12 @@
             min-height: 80px;
             resize: vertical;
         }
-        .checkbox-group {
+        .checkbox-group, .radio-group {
             display: flex;
             align-items: center;
             gap: 0.5rem;
             margin: 0.5rem 0;
-        }
-        .radio-group {
-            display: flex;
-            gap: 1rem;
-            margin: 0.5rem 0;
+            flex-wrap: wrap;
         }
         .btn-group {
             display: flex;
@@ -369,7 +360,7 @@
             background: #0f1422;
             border-radius: 2rem;
             padding: 1.5rem;
-            max-width: 1200px;
+            max-width: 1400px;
             margin: 0 auto;
         }
         .admin-table {
@@ -403,35 +394,6 @@
             color: white;
             cursor: pointer;
         }
-        .inline-edit {
-            display: flex;
-            flex-direction: column;
-            gap: 0.3rem;
-        }
-        .inline-edit input {
-            background: #0f1422;
-            border: 1px solid #2d3a5e;
-            padding: 0.3rem;
-            border-radius: 0.3rem;
-            color: white;
-            font-size: 0.7rem;
-        }
-        .save-edit {
-            background: #10b981;
-            border: none;
-            padding: 0.2rem;
-            border-radius: 0.3rem;
-            color: white;
-            cursor: pointer;
-        }
-        .cancel-edit {
-            background: #6b7280;
-            border: none;
-            padding: 0.2rem;
-            border-radius: 0.3rem;
-            color: white;
-            cursor: pointer;
-        }
         .close-modal {
             background: #ef4444;
             border: none;
@@ -441,11 +403,54 @@
             cursor: pointer;
             float: right;
         }
-        textarea.code-input {
-            font-family: monospace;
-            font-size: 0.7rem;
+        .template-tabs {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+            flex-wrap: wrap;
+        }
+        .template-tab {
+            background: #1e293b;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 2rem;
+            color: white;
+            cursor: pointer;
+        }
+        .template-tab.active {
+            background: #7C3AED;
+        }
+        .template-editor {
+            display: none;
+            margin-bottom: 1.5rem;
+        }
+        .template-editor.active {
+            display: block;
+        }
+        .template-editor textarea {
+            width: 100%;
             background: #03060e;
+            border: 1px solid #2d3a5e;
+            border-radius: 0.8rem;
+            padding: 1rem;
             color: #cbd5f0;
+            font-family: 'Fira Code', monospace;
+            font-size: 0.7rem;
+            min-height: 250px;
+        }
+        .save-template-btn {
+            background: #10b981;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 2rem;
+            color: white;
+            cursor: pointer;
+            margin-top: 0.5rem;
+        }
+        .sub-section {
+            margin-top: 1.5rem;
+            padding-top: 1rem;
+            border-top: 1px solid #2d3a5e;
         }
 
         @media (max-width: 880px) {
@@ -554,30 +559,50 @@
         <button class="close-modal" id="closeAdminBtn"><i class="fas fa-times"></i> Tutup</button>
         <h2><i class="fas fa-user-shield"></i> Admin Dashboard</h2>
         
-        <h3 style="margin-top: 1rem;">📝 Custom Code per Platform (Template Bot)</h3>
-        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; margin-bottom: 1.5rem;">
-            <div>
-                <label>WhatsApp Template</label>
-                <textarea id="adminWhatsAppTemplate" rows="6" class="code-input" style="width:100%; background:#03060e; color:#cbd5f0; border-radius:0.5rem; padding:0.5rem;"></textarea>
+        <!-- Template Editor per Platform -->
+        <div class="sub-section">
+            <h3>📝 Edit Template Bot (index.js, config.js, package.json)</h3>
+            <div class="template-tabs">
+                <button class="template-tab active" data-template-platform="whatsapp">WhatsApp</button>
+                <button class="template-tab" data-template-platform="telegram">Telegram</button>
+                <button class="template-tab" data-template-platform="discord">Discord</button>
             </div>
-            <div>
-                <label>Telegram Template</label>
-                <textarea id="adminTelegramTemplate" rows="6" class="code-input" style="width:100%; background:#03060e; color:#cbd5f0; border-radius:0.5rem; padding:0.5rem;"></textarea>
+            
+            <div id="whatsappEditor" class="template-editor active">
+                <h4>WhatsApp Templates</h4>
+                <div class="input-group-sm"><label>index.js template</label><textarea id="waIndexTemplate" rows="12"></textarea></div>
+                <div class="input-group-sm"><label>config.js template</label><textarea id="waConfigTemplate" rows="6"></textarea></div>
+                <div class="input-group-sm"><label>package.json template</label><textarea id="waPackageTemplate" rows="8"></textarea></div>
+                <button class="save-template-btn" data-platform="whatsapp"><i class="fas fa-save"></i> Simpan Template WhatsApp</button>
             </div>
-            <div>
-                <label>Discord Template</label>
-                <textarea id="adminDiscordTemplate" rows="6" class="code-input" style="width:100%; background:#03060e; color:#cbd5f0; border-radius:0.5rem; padding:0.5rem;"></textarea>
+            
+            <div id="telegramEditor" class="template-editor">
+                <h4>Telegram Templates</h4>
+                <div class="input-group-sm"><label>index.js template</label><textarea id="tgIndexTemplate" rows="12"></textarea></div>
+                <div class="input-group-sm"><label>config.js template</label><textarea id="tgConfigTemplate" rows="6"></textarea></div>
+                <div class="input-group-sm"><label>package.json template</label><textarea id="tgPackageTemplate" rows="8"></textarea></div>
+                <button class="save-template-btn" data-platform="telegram"><i class="fas fa-save"></i> Simpan Template Telegram</button>
+            </div>
+            
+            <div id="discordEditor" class="template-editor">
+                <h4>Discord Templates</h4>
+                <div class="input-group-sm"><label>index.js template</label><textarea id="dcIndexTemplate" rows="12"></textarea></div>
+                <div class="input-group-sm"><label>config.js template</label><textarea id="dcConfigTemplate" rows="6"></textarea></div>
+                <div class="input-group-sm"><label>package.json template</label><textarea id="dcPackageTemplate" rows="8"></textarea></div>
+                <button class="save-template-btn" data-platform="discord"><i class="fas fa-save"></i> Simpan Template Discord</button>
             </div>
         </div>
-        <button id="saveTemplatesBtn" style="background:#10b981; border:none; padding:0.5rem 1rem; border-radius:2rem; color:white; cursor:pointer; margin-bottom:1rem;"><i class="fas fa-save"></i> Simpan Template</button>
         
-        <h3>📋 Daftar User & Edit Panel Credentials</h3>
-        <table class="admin-table">
-            <thead>
-                <tr><th>Email</th><th>Nama</th><th>Role</th><th>Premium</th><th>Panel URL</th><th>Domain</th><th>Username Panel</th><th>Password Panel</th><th>Aksi</th></tr>
-            </thead>
-            <tbody id="adminUserList"></tbody>
-        </table>
+        <!-- User Management -->
+        <div class="sub-section">
+            <h3>📋 Daftar User & Edit Panel Credentials</h3>
+            <table class="admin-table">
+                <thead>
+                    <tr><th>Email</th><th>Nama</th><th>Role</th><th>Premium</th><th>Panel URL</th><th>Domain</th><th>Username Panel</th><th>Password Panel</th><th>Aksi</th></tr>
+                </thead>
+                <tbody id="adminUserList"></tbody>
+            </table>
+        </div>
     </div>
 </div>
 
@@ -586,9 +611,10 @@
     let users = JSON.parse(localStorage.getItem('botcraft_users')) || [];
     let currentUser = JSON.parse(sessionStorage.getItem('botcraft_current_user')) || null;
     
-    // Bot templates (disimpan admin)
-    let botTemplates = JSON.parse(localStorage.getItem('botcraft_templates')) || {
-        whatsapp: `// WhatsApp Bot Template
+    // Template default untuk setiap platform (3 file: index, config, package)
+    let botTemplates = JSON.parse(localStorage.getItem('botcraft_full_templates')) || {
+        whatsapp: {
+            index: `// WhatsApp Bot Template
 const { Client, LocalAuth } = require('whatsapp-web.js');
 const qrcode = require('qrcode-terminal');
 const config = require('./config');
@@ -612,11 +638,32 @@ client.on('message', async (msg) => {
     if (msg.body.startsWith(config.prefix + 'ping')) {
         await msg.reply('🏓 Pong!');
     }
+    if (msg.body.startsWith(config.prefix + 'info')) {
+        await msg.reply(\`🤖 Bot Active\\nPrefix: \${config.prefix}\\nOwner: \${config.ownerId}\`);
+    }
 });
 
 client.initialize();
 console.log('🚀 Bot WhatsApp berjalan...');`,
-        telegram: `// Telegram Bot Template
+            config: `module.exports = {
+    prefix: "!",
+    ownerId: "6281234567890",
+    sessionName: "wa-session"
+};`,
+            package: `{
+    "name": "whatsapp-bot",
+    "version": "1.0.0",
+    "description": "WhatsApp Bot dari BotCraft Pro",
+    "main": "index.js",
+    "scripts": { "start": "node index.js" },
+    "dependencies": {
+        "whatsapp-web.js": "^1.23.0",
+        "qrcode-terminal": "^0.12.0"
+    }
+}`
+        },
+        telegram: {
+            index: `// Telegram Bot Template
 const TelegramBot = require('node-telegram-bot-api');
 const config = require('./config');
 
@@ -630,17 +677,43 @@ bot.onText(/\\/ping/, (msg) => {
     bot.sendMessage(msg.chat.id, '🏓 Pong!');
 });
 
+bot.onText(/\\/info/, (msg) => {
+    bot.sendMessage(msg.chat.id, \`🤖 Bot Active\\nPrefix: \${config.prefix}\`);
+});
+
 console.log('🚀 Bot Telegram berjalan...');`,
-        discord: `// Discord Bot Template
+            config: `module.exports = {
+    prefix: "!",
+    ownerId: "123456789",
+    botToken: "YOUR_BOT_TOKEN_HERE"
+};`,
+            package: `{
+    "name": "telegram-bot",
+    "version": "1.0.0",
+    "description": "Telegram Bot dari BotCraft Pro",
+    "main": "index.js",
+    "scripts": { "start": "node index.js" },
+    "dependencies": {
+        "node-telegram-bot-api": "^0.64.0"
+    }
+}`
+        },
+        discord: {
+            index: `// Discord Bot Template
 const { Client, GatewayIntentBits } = require('discord.js');
 const config = require('./config');
 
 const client = new Client({
-    intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages, GatewayIntentBits.MessageContent]
+    intents: [
+        GatewayIntentBits.Guilds,
+        GatewayIntentBits.GuildMessages,
+        GatewayIntentBits.MessageContent
+    ]
 });
 
 client.once('ready', () => {
     console.log(\`✅ Bot Discord siap sebagai \${client.user.tag}\`);
+    console.log(\`Prefix: \${config.prefix}\`);
 });
 
 client.on('messageCreate', async (msg) => {
@@ -648,10 +721,29 @@ client.on('messageCreate', async (msg) => {
     if (msg.content.startsWith(config.prefix + 'ping')) {
         await msg.reply('🏓 Pong!');
     }
+    if (msg.content.startsWith(config.prefix + 'info')) {
+        await msg.reply(\`🤖 Bot Active\\nPrefix: \${config.prefix}\\nOwner: <@\${config.ownerId}>\`);
+    }
 });
 
 client.login(config.botToken);
-console.log('🚀 Bot Discord berjalan...');`
+console.log('🚀 Bot Discord berjalan...');`,
+            config: `module.exports = {
+    prefix: "!",
+    ownerId: "123456789012345678",
+    botToken: "YOUR_DISCORD_TOKEN_HERE"
+};`,
+            package: `{
+    "name": "discord-bot",
+    "version": "1.0.0",
+    "description": "Discord Bot dari BotCraft Pro",
+    "main": "index.js",
+    "scripts": { "start": "node index.js" },
+    "dependencies": {
+        "discord.js": "^14.14.1"
+    }
+}`
+        }
     };
 
     // Init admin default
@@ -671,11 +763,11 @@ console.log('🚀 Bot Discord berjalan...');`
         });
         localStorage.setItem('botcraft_users', JSON.stringify(users));
     }
-    localStorage.setItem('botcraft_templates', JSON.stringify(botTemplates));
+    localStorage.setItem('botcraft_full_templates', JSON.stringify(botTemplates));
 
     function saveUsers() { localStorage.setItem('botcraft_users', JSON.stringify(users)); }
     function saveCurrentUser() { if(currentUser) sessionStorage.setItem('botcraft_current_user', JSON.stringify(currentUser)); }
-    function saveTemplates() { localStorage.setItem('botcraft_templates', JSON.stringify(botTemplates)); }
+    function saveTemplates() { localStorage.setItem('botcraft_full_templates', JSON.stringify(botTemplates)); }
 
     function showToast(msg, type = 'success') {
         const toast = document.createElement('div');
@@ -862,10 +954,18 @@ console.log('🚀 Bot Discord berjalan...');`
             const modal = document.getElementById('adminModal');
             const tbody = document.getElementById('adminUserList');
             
-            // Load templates ke form
-            document.getElementById('adminWhatsAppTemplate').value = botTemplates.whatsapp;
-            document.getElementById('adminTelegramTemplate').value = botTemplates.telegram;
-            document.getElementById('adminDiscordTemplate').value = botTemplates.discord;
+            // Load templates ke form admin
+            document.getElementById('waIndexTemplate').value = botTemplates.whatsapp.index;
+            document.getElementById('waConfigTemplate').value = botTemplates.whatsapp.config;
+            document.getElementById('waPackageTemplate').value = botTemplates.whatsapp.package;
+            
+            document.getElementById('tgIndexTemplate').value = botTemplates.telegram.index;
+            document.getElementById('tgConfigTemplate').value = botTemplates.telegram.config;
+            document.getElementById('tgPackageTemplate').value = botTemplates.telegram.package;
+            
+            document.getElementById('dcIndexTemplate').value = botTemplates.discord.index;
+            document.getElementById('dcConfigTemplate').value = botTemplates.discord.config;
+            document.getElementById('dcPackageTemplate').value = botTemplates.discord.package;
             
             function renderUserTable() {
                 tbody.innerHTML = users.map(u => `
@@ -885,7 +985,6 @@ console.log('🚀 Bot Discord berjalan...');`
                     </tr>
                 `).join('');
                 
-                // Edit button handlers
                 document.querySelectorAll('.edit-btn').forEach(btn => {
                     btn.onclick = () => {
                         const userId = parseInt(btn.dataset.id);
@@ -951,15 +1050,43 @@ console.log('🚀 Bot Discord berjalan...');`
             document.getElementById('adminModal').style.display = 'none';
         });
         
-        // Save templates
-        document.getElementById('saveTemplatesBtn')?.addEventListener('click', () => {
-            botTemplates = {
-                whatsapp: document.getElementById('adminWhatsAppTemplate').value,
-                telegram: document.getElementById('adminTelegramTemplate').value,
-                discord: document.getElementById('adminDiscordTemplate').value
+        // Template tab switching
+        document.querySelectorAll('.template-tab').forEach(tab => {
+            tab.onclick = () => {
+                document.querySelectorAll('.template-tab').forEach(t => t.classList.remove('active'));
+                tab.classList.add('active');
+                const platform = tab.dataset.templatePlatform;
+                document.querySelectorAll('.template-editor').forEach(ed => ed.classList.remove('active'));
+                document.getElementById(`${platform}Editor`).classList.add('active');
             };
-            saveTemplates();
-            showToast('Template bot berhasil disimpan!');
+        });
+        
+        // Save template buttons
+        document.querySelectorAll('.save-template-btn').forEach(btn => {
+            btn.onclick = () => {
+                const platform = btn.dataset.platform;
+                if (platform === 'whatsapp') {
+                    botTemplates.whatsapp = {
+                        index: document.getElementById('waIndexTemplate').value,
+                        config: document.getElementById('waConfigTemplate').value,
+                        package: document.getElementById('waPackageTemplate').value
+                    };
+                } else if (platform === 'telegram') {
+                    botTemplates.telegram = {
+                        index: document.getElementById('tgIndexTemplate').value,
+                        config: document.getElementById('tgConfigTemplate').value,
+                        package: document.getElementById('tgPackageTemplate').value
+                    };
+                } else if (platform === 'discord') {
+                    botTemplates.discord = {
+                        index: document.getElementById('dcIndexTemplate').value,
+                        config: document.getElementById('dcConfigTemplate').value,
+                        package: document.getElementById('dcPackageTemplate').value
+                    };
+                }
+                saveTemplates();
+                showToast(`Template ${platform} berhasil disimpan!`);
+            };
         });
     }
 
@@ -988,15 +1115,12 @@ console.log('🚀 Bot Discord berjalan...');`
                     </div>
                     <div class="input-group-sm"><label>📞 Nomor (untuk pairing)</label><input type="text" id="pairingNumber"></div>`;
         } else if (currentConfigTab === 'security') {
-            html = `<div class="checkbox-group"><input type="checkbox" id="antiLink"> 🔗 Anti Link (blokir pesan berisi link)</div>
-                    <div class="checkbox-group"><input type="checkbox" id="antiSpam"> 🚫 Anti Spam (batas 3 pesan/detik)</div>
-                    <div class="input-group-sm"><label>⏱️ Mute duration (detik)</label><input type="number" id="muteDur" value="30"></div>
-                    <div class="checkbox-group"><input type="checkbox" id="antiBadword"> 🤬 Filter Kata Kasar</div>
-                    <div class="input-group-sm"><label>📝 Daftar kata kasar (pisah koma)</label><input type="text" id="badwords" value="anjing,setan,bangsat"></div>`;
+            html = `<div class="checkbox-group"><input type="checkbox" id="antiLink"> 🔗 Anti Link</div>
+                    <div class="checkbox-group"><input type="checkbox" id="antiSpam"> 🚫 Anti Spam (3 pesan/detik)</div>
+                    <div class="checkbox-group"><input type="checkbox" id="antiBadword"> 🤬 Filter Kata Kasar</div>`;
         } else {
             html = `<div class="checkbox-group"><input type="checkbox" id="autoReply"> 🤖 Auto Reply</div>
-                    <div class="input-group-sm"><label>📝 Aturan (kata => respon)</label><textarea id="rules" rows="3">halo => Hai juga!\npagi => Selamat pagi\nhelp => Bot siap membantu!</textarea></div>
-                    <div class="input-group-sm"><label>💬 Respon default</label><input type="text" id="defaultReply" value="Maaf, saya tidak mengerti."></div>`;
+                    <div class="input-group-sm"><label>📝 Aturan (kata => respon)</label><textarea id="rules" rows="3">halo => Hai juga!\npagi => Selamat pagi</textarea></div>`;
         }
         dynamicFields.innerHTML = html;
     }
@@ -1011,74 +1135,69 @@ console.log('🚀 Bot Discord berjalan...');`
             pairingNumber: document.getElementById('pairingNumber')?.value || '',
             antiLink: document.getElementById('antiLink')?.checked || false,
             antiSpam: document.getElementById('antiSpam')?.checked || false,
-            muteDur: document.getElementById('muteDur')?.value || 30,
             antiBadword: document.getElementById('antiBadword')?.checked || false,
-            badwords: document.getElementById('badwords')?.value || '',
             autoReply: document.getElementById('autoReply')?.checked || false,
-            rules: document.getElementById('rules')?.value || '',
-            defaultReply: document.getElementById('defaultReply')?.value || 'Maaf, saya tidak mengerti.'
+            rules: document.getElementById('rules')?.value || ''
         };
-    }
-    
-    function parseRules(rulesText) {
-        const rules = [];
-        rulesText.split('\n').forEach(line => {
-            if (line.includes('=>')) {
-                let [k, v] = line.split('=>').map(s => s.trim());
-                if (k && v) rules.push({ keyword: k.toLowerCase(), response: v });
-            }
-        });
-        return rules;
     }
     
     function generateCustomCode() {
         const cfg = getConfigValues();
         const platform = currentPlatform;
-        let template = botTemplates[platform] || `// ${platform} Bot\nconsole.log('Bot siap!');`;
+        const templates = botTemplates[platform];
         
-        // Replace placeholders dengan config user
-        let finalCode = template
+        if (!templates) {
+            showToast('Template tidak ditemukan!', 'error');
+            return;
+        }
+        
+        // Replace placeholders di semua template
+        let finalIndex = templates.index
             .replace(/config\.prefix/g, `"${cfg.prefix}"`)
+            .replace(/config\.ownerId/g, `"${cfg.owner}"`)
             .replace(/config\.botToken/g, `"${cfg.token}"`)
-            .replace(/config\.ownerId/g, `"${cfg.owner}"`);
+            .replace(/config\.sessionName/g, `"${cfg.session}"`);
         
-        // Tambahkan fitur tambahan jika diaktifkan
+        let finalConfig = templates.config
+            .replace(/"!".*prefix.*/g, `prefix: "${cfg.prefix}",`)
+            .replace(/"6281234567890".*ownerId.*/g, `ownerId: "${cfg.owner}",`)
+            .replace(/"YOUR_TOKEN_HERE".*botToken.*/g, `botToken: "${cfg.token}",`)
+            .replace(/"wa-session".*sessionName.*/g, `sessionName: "${cfg.session}",`);
+        
+        // Fix config format
+        finalConfig = finalConfig.replace(/,\s*,/g, ',').replace(/,(\s*})/g, '$1');
+        
+        let finalPackage = templates.package;
+        
+        // Tambahkan fitur anti link, anti spam dll ke index.js
         let additionalFeatures = '';
         if (cfg.antiLink) {
             additionalFeatures += `
-// Anti Link
-function containsLink(text) {
-    return /(https?:\\/\\/|www\\.)/i.test(text);
-}
-if (containsLink(msg.body)) {
-    await msg.reply('⚠️ Link tidak diperbolehkan!');
-    return;
-}
-`;
+    // Anti Link
+    const linkPattern = /(https?:\\/\\/|www\\.)/i;
+    if (linkPattern.test(msg.body)) {
+        await msg.reply('⚠️ Link tidak diperbolehkan!');
+        return;
+    }`;
+        }
+        if (cfg.antiSpam) {
+            additionalFeatures += `
+    // Anti Spam sederhana
+    // (implementasi lengkap bisa ditambahkan sendiri)`;
         }
         
-        const configJs = `module.exports = {
-    prefix: "${cfg.prefix}",
-    ownerId: "${cfg.owner}",
-    ${platform !== 'whatsapp' ? `botToken: "${cfg.token}",` : `sessionName: "${cfg.session}",`}
-    antiLink: ${cfg.antiLink},
-    antiSpam: ${cfg.antiSpam},
-    autoReply: ${cfg.autoReply}
-};`;
-        
-        const packageJson = `{
-  "name": "${platform}-bot",
-  "version": "1.0.0",
-  "description": "Bot ${platform} dari BotCraft Pro",
-  "main": "index.js",
-  "scripts": { "start": "node index.js" },
-  "dependencies": ${platform === 'whatsapp' ? `{ "whatsapp-web.js": "^1.23.0", "qrcode-terminal": "^0.12.0" }` : platform === 'telegram' ? `{ "node-telegram-bot-api": "^0.64.0" }` : `{ "discord.js": "^14.14.1" }`}
-}`;
+        // Sisipkan fitur tambahan di dalam handler message
+        if (additionalFeatures && platform === 'whatsapp') {
+            finalIndex = finalIndex.replace(
+                /client\.on\('message', async \(msg\) => \{/,
+                `client.on('message', async (msg) => {${additionalFeatures}`
+            );
+        }
         
         generatedContent = {
-            index: finalCode + additionalFeatures,
-            config: configJs,
-            package: JSON.stringify(JSON.parse(packageJson), null, 2)
+            index: finalIndex,
+            config: finalConfig,
+            package: finalPackage
         };
         
         document.getElementById('indexCode').innerText = generatedContent.index;
