@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
-    <title>BotCraft Pro | Login & Register + Premium Bot Generator + Pterodactyl Panel</title>
+    <title>BotCraft Pro | Admin Panel + Custom Bot Code + Premium</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <style>
         * {
@@ -19,7 +19,6 @@
             min-height: 100vh;
         }
 
-        /* Toast Notification */
         .toast {
             position: fixed;
             bottom: 20px;
@@ -57,7 +56,6 @@
             width: 100%;
             max-width: 420px;
             border: 1px solid rgba(139,92,246,0.3);
-            box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5);
         }
 
         .auth-card h2 {
@@ -72,14 +70,12 @@
         .input-group {
             margin-bottom: 1rem;
         }
-
         .input-group label {
             display: block;
             font-size: 0.75rem;
             margin-bottom: 0.3rem;
             color: #9ca3cf;
         }
-
         .input-group input {
             width: 100%;
             background: #0f1422;
@@ -89,12 +85,10 @@
             color: white;
             font-size: 0.9rem;
         }
-
         .input-group input:focus {
             outline: none;
             border-color: #a855f7;
         }
-
         .btn-primary {
             width: 100%;
             background: linear-gradient(90deg, #7C3AED, #A855F7);
@@ -104,23 +98,19 @@
             font-weight: 600;
             color: white;
             cursor: pointer;
-            margin-top: 0.5rem;
         }
-
         .switch-text {
             text-align: center;
             margin-top: 1rem;
             font-size: 0.8rem;
             color: #9ca3cf;
         }
-
         .switch-text a {
             color: #a855f7;
             cursor: pointer;
-            text-decoration: none;
         }
 
-        /* Main App (hidden until logged in) */
+        /* Main App */
         .main-app {
             display: none;
             padding: 1.5rem;
@@ -141,7 +131,6 @@
             flex-wrap: wrap;
             gap: 1rem;
         }
-
         .logo {
             font-size: 1.3rem;
             font-weight: 700;
@@ -150,20 +139,17 @@
             background-clip: text;
             color: transparent;
         }
-
         .user-info {
             display: flex;
             align-items: center;
             gap: 1rem;
         }
-
         .user-info span {
             background: rgba(139,92,246,0.2);
             padding: 0.3rem 0.8rem;
             border-radius: 2rem;
             font-size: 0.8rem;
         }
-
         .logout-btn, .admin-btn {
             background: #1e293b;
             border: none;
@@ -171,9 +157,7 @@
             border-radius: 2rem;
             color: white;
             cursor: pointer;
-            font-size: 0.8rem;
         }
-
         .admin-btn {
             background: #f59e0b;
         }
@@ -193,7 +177,6 @@
             border: 1px solid rgba(255,255,255,0.1);
             padding: 1.2rem;
         }
-
         .panel h3 {
             font-size: 1rem;
             margin-bottom: 1rem;
@@ -206,7 +189,6 @@
             gap: 0.5rem;
             margin-bottom: 1rem;
         }
-
         .plat-btn {
             flex: 1;
             background: rgba(255,255,255,0.05);
@@ -217,7 +199,6 @@
             text-align: center;
             font-size: 0.8rem;
         }
-
         .plat-btn.active {
             background: linear-gradient(95deg, #7C3AED, #A855F7);
         }
@@ -230,7 +211,6 @@
             border-bottom: 1px solid #2d3a5e;
             padding-bottom: 0.5rem;
         }
-
         .config-tab-btn {
             background: transparent;
             border: none;
@@ -240,7 +220,6 @@
             cursor: pointer;
             font-size: 0.7rem;
         }
-
         .config-tab-btn.active {
             background: rgba(124,58,237,0.3);
             color: #c084fc;
@@ -253,20 +232,31 @@
             font-size: 0.7rem;
             display: block;
             margin-bottom: 0.2rem;
+            color: #cbd5ff;
         }
-        .input-group-sm input, .input-group-sm textarea {
+        .input-group-sm input, .input-group-sm textarea, .input-group-sm select {
             width: 100%;
             background: #0f1422;
             border: 1px solid #2d3a5e;
             border-radius: 0.6rem;
-            padding: 0.4rem 0.6rem;
+            padding: 0.5rem 0.7rem;
             color: white;
             font-size: 0.75rem;
+            font-family: monospace;
+        }
+        .input-group-sm textarea {
+            min-height: 80px;
+            resize: vertical;
         }
         .checkbox-group {
             display: flex;
             align-items: center;
             gap: 0.5rem;
+            margin: 0.5rem 0;
+        }
+        .radio-group {
+            display: flex;
+            gap: 1rem;
             margin: 0.5rem 0;
         }
         .btn-group {
@@ -315,10 +305,12 @@
         .code-block {
             display: none;
             padding: 0.8rem;
-            font-family: monospace;
+            font-family: 'Fira Code', monospace;
             font-size: 0.65rem;
+            line-height: 1.4;
             background: #03060e;
             white-space: pre-wrap;
+            word-break: break-word;
             max-height: 450px;
             overflow: auto;
         }
@@ -334,7 +326,7 @@
             margin: 0.5rem;
         }
 
-        /* Premium Card / Pterodactyl Panel Info */
+        /* Premium Card */
         .premium-info {
             background: linear-gradient(135deg, #1e1b4b, #0f172a);
             border-radius: 1rem;
@@ -360,10 +352,25 @@
             display: inline-block;
         }
 
-        /* Admin Dashboard */
-        .admin-dashboard {
+        /* Admin Modal */
+        .admin-modal {
             display: none;
-            margin-top: 1rem;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.95);
+            z-index: 3000;
+            overflow: auto;
+            padding: 2rem;
+        }
+        .admin-modal-content {
+            background: #0f1422;
+            border-radius: 2rem;
+            padding: 1.5rem;
+            max-width: 1200px;
+            margin: 0 auto;
         }
         .admin-table {
             width: 100%;
@@ -374,9 +381,19 @@
             border: 1px solid #2d3a5e;
             padding: 0.5rem;
             text-align: left;
+            vertical-align: top;
         }
         .admin-table th {
             background: #1e293b;
+        }
+        .edit-btn {
+            background: #3b82f6;
+            border: none;
+            padding: 0.2rem 0.5rem;
+            border-radius: 0.5rem;
+            color: white;
+            cursor: pointer;
+            margin-right: 0.3rem;
         }
         .delete-user {
             background: #ef4444;
@@ -385,6 +402,50 @@
             border-radius: 0.5rem;
             color: white;
             cursor: pointer;
+        }
+        .inline-edit {
+            display: flex;
+            flex-direction: column;
+            gap: 0.3rem;
+        }
+        .inline-edit input {
+            background: #0f1422;
+            border: 1px solid #2d3a5e;
+            padding: 0.3rem;
+            border-radius: 0.3rem;
+            color: white;
+            font-size: 0.7rem;
+        }
+        .save-edit {
+            background: #10b981;
+            border: none;
+            padding: 0.2rem;
+            border-radius: 0.3rem;
+            color: white;
+            cursor: pointer;
+        }
+        .cancel-edit {
+            background: #6b7280;
+            border: none;
+            padding: 0.2rem;
+            border-radius: 0.3rem;
+            color: white;
+            cursor: pointer;
+        }
+        .close-modal {
+            background: #ef4444;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 2rem;
+            color: white;
+            cursor: pointer;
+            float: right;
+        }
+        textarea.code-input {
+            font-family: monospace;
+            font-size: 0.7rem;
+            background: #03060e;
+            color: #cbd5f0;
         }
 
         @media (max-width: 880px) {
@@ -395,7 +456,7 @@
 </head>
 <body>
 
-<!-- Auth Container (Login/Register) -->
+<!-- Auth Container -->
 <div id="authContainer" class="auth-container">
     <div class="auth-card">
         <h2 id="authTitle">Login</h2>
@@ -421,7 +482,7 @@
     </div>
 </div>
 
-<!-- Main App (setelah login) -->
+<!-- Main App -->
 <div id="mainApp" class="main-app">
     <div class="navbar">
         <div class="logo"><i class="fas fa-robot"></i> BotCraft Pro</div>
@@ -432,19 +493,19 @@
         </div>
     </div>
 
-    <!-- Premium Info & Pterodactyl Panel -->
+    <!-- Premium Panel -->
     <div id="premiumPanel" class="panel" style="margin-bottom: 1rem;">
         <div id="notPremiumBox" style="text-align: center; padding: 1rem;">
-            <p><i class="fas fa-lock"></i> Fitur Premium terkunci</p>
-            <button id="payNowBtnMain" class="btn-primary" style="width: auto; padding: 0.5rem 1.5rem; margin-top: 0.5rem;"><i class="fas fa-unlock-alt"></i> Bayar Rp 49.000 & Dapatkan Panel</button>
+            <p><i class="fas fa-lock"></i> Fitur Premium terkunci (Panel Pterodactyl + Domain)</p>
+            <button id="payNowBtnMain" class="btn-primary" style="width: auto; padding: 0.5rem 1.5rem; margin-top: 0.5rem;"><i class="fas fa-unlock-alt"></i> Bayar Rp 49.000</button>
         </div>
         <div id="premiumBox" style="display: none;">
             <div class="premium-info">
-                <h4><i class="fas fa-crown"></i> Selamat! Anda Premium Member</h4>
-                <p><i class="fas fa-server"></i> <strong>Panel Pterodactyl:</strong> <span id="pterodactylPanel">https://panel.botcraftpro.com</span></p>
-                <p><i class="fas fa-globe"></i> <strong>Domain:</strong> <span id="userDomain">bot-xxxx.botcraftpro.com</span></p>
-                <p><i class="fas fa-user"></i> <strong>Username:</strong> <span id="panelUsername">user_xxxx</span></p>
-                <p><i class="fas fa-key"></i> <strong>Password:</strong> <span id="panelPassword">xxxxxx</span></p>
+                <h4><i class="fas fa-crown"></i> Premium Member</h4>
+                <p><i class="fas fa-server"></i> <strong>Panel Pterodactyl:</strong> <span id="pterodactylPanel">-</span></p>
+                <p><i class="fas fa-globe"></i> <strong>Domain:</strong> <span id="userDomain">-</span></p>
+                <p><i class="fas fa-user"></i> <strong>Username Panel:</strong> <span id="panelUsername">-</span></p>
+                <p><i class="fas fa-key"></i> <strong>Password Panel:</strong> <span id="panelPassword">-</span></p>
                 <span class="premium-badge"><i class="fas fa-check-circle"></i> Aktif</span>
             </div>
         </div>
@@ -455,20 +516,20 @@
         <div class="panel">
             <h3><i class="fas fa-code-branch"></i> Konfigurasi Bot</h3>
             <div class="platform-selector">
-                <div class="plat-btn active" data-platform="whatsapp">WhatsApp</div>
-                <div class="plat-btn" data-platform="telegram">Telegram</div>
-                <div class="plat-btn" data-platform="discord">Discord</div>
+                <div class="plat-btn active" data-platform="whatsapp"><i class="fab fa-whatsapp"></i> WhatsApp</div>
+                <div class="plat-btn" data-platform="telegram"><i class="fab fa-telegram"></i> Telegram</div>
+                <div class="plat-btn" data-platform="discord"><i class="fab fa-discord"></i> Discord</div>
             </div>
             <div class="config-tabs">
-                <button class="config-tab-btn active" data-config="basic">Basic</button>
-                <button class="config-tab-btn" data-config="auth">Auth</button>
-                <button class="config-tab-btn" data-config="security">Security</button>
-                <button class="config-tab-btn" data-config="auto">Auto Reply</button>
+                <button class="config-tab-btn active" data-config="basic">🔧 Basic</button>
+                <button class="config-tab-btn" data-config="auth">🔐 Auth</button>
+                <button class="config-tab-btn" data-config="security">🛡️ Security</button>
+                <button class="config-tab-btn" data-config="auto">🤖 Auto Reply</button>
             </div>
             <div id="dynamicFields"></div>
             <div class="btn-group">
                 <button id="generateBtn" class="gen-btn"><i class="fas fa-magic"></i> Generate</button>
-                <button id="downloadBtn" class="download-btn"><i class="fas fa-download"></i> Download</button>
+                <button id="downloadBtn" class="download-btn"><i class="fas fa-download"></i> Download Semua</button>
             </div>
         </div>
         <div class="output-panel">
@@ -477,9 +538,9 @@
                 <button class="tab-btn" data-tab="config">config.js</button>
                 <button class="tab-btn" data-tab="package">package.json</button>
             </div>
-            <pre id="indexCode" class="code-block active">✨ Generate kode akan muncul di sini ✨</pre>
-            <pre id="configCode" class="code-block">✨ Generate kode akan muncul di sini ✨</pre>
-            <pre id="packageCode" class="code-block">✨ Generate kode akan muncul di sini ✨</pre>
+            <pre id="indexCode" class="code-block active"><span class="empty-code">✨ Pilih platform, atur konfigurasi, lalu klik Generate ✨</span></pre>
+            <pre id="configCode" class="code-block"><span class="empty-code">✨ Pilih platform, atur konfigurasi, lalu klik Generate ✨</span></pre>
+            <pre id="packageCode" class="code-block"><span class="empty-code">✨ Pilih platform, atur konfigurasi, lalu klik Generate ✨</span></pre>
             <div style="text-align: right;">
                 <button id="copyBtn" class="copy-btn"><i class="far fa-copy"></i> Salin File Aktif</button>
             </div>
@@ -487,17 +548,33 @@
     </div>
 </div>
 
-<!-- Admin Dashboard Modal -->
-<div id="adminModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.9); z-index:3000; overflow:auto; padding:2rem;">
-    <div style="background:#0f1422; border-radius:2rem; padding:1.5rem; max-width:1000px; margin:0 auto;">
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem;">
-            <h2><i class="fas fa-user-shield"></i> Admin Dashboard</h2>
-            <button id="closeAdminBtn" style="background:#ef4444; border:none; padding:0.5rem 1rem; border-radius:2rem; color:white; cursor:pointer;">Tutup</button>
+<!-- Admin Modal -->
+<div id="adminModal" class="admin-modal">
+    <div class="admin-modal-content">
+        <button class="close-modal" id="closeAdminBtn"><i class="fas fa-times"></i> Tutup</button>
+        <h2><i class="fas fa-user-shield"></i> Admin Dashboard</h2>
+        
+        <h3 style="margin-top: 1rem;">📝 Custom Code per Platform (Template Bot)</h3>
+        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; margin-bottom: 1.5rem;">
+            <div>
+                <label>WhatsApp Template</label>
+                <textarea id="adminWhatsAppTemplate" rows="6" class="code-input" style="width:100%; background:#03060e; color:#cbd5f0; border-radius:0.5rem; padding:0.5rem;"></textarea>
+            </div>
+            <div>
+                <label>Telegram Template</label>
+                <textarea id="adminTelegramTemplate" rows="6" class="code-input" style="width:100%; background:#03060e; color:#cbd5f0; border-radius:0.5rem; padding:0.5rem;"></textarea>
+            </div>
+            <div>
+                <label>Discord Template</label>
+                <textarea id="adminDiscordTemplate" rows="6" class="code-input" style="width:100%; background:#03060e; color:#cbd5f0; border-radius:0.5rem; padding:0.5rem;"></textarea>
+            </div>
         </div>
-        <h3>Daftar User & Status Premium</h3>
+        <button id="saveTemplatesBtn" style="background:#10b981; border:none; padding:0.5rem 1rem; border-radius:2rem; color:white; cursor:pointer; margin-bottom:1rem;"><i class="fas fa-save"></i> Simpan Template</button>
+        
+        <h3>📋 Daftar User & Edit Panel Credentials</h3>
         <table class="admin-table">
             <thead>
-                <tr><th>Email</th><th>Nama</th><th>Role</th><th>Premium</th><th>Panel Info</th><th>Aksi</th></tr>
+                <tr><th>Email</th><th>Nama</th><th>Role</th><th>Premium</th><th>Panel URL</th><th>Domain</th><th>Username Panel</th><th>Password Panel</th><th>Aksi</th></tr>
             </thead>
             <tbody id="adminUserList"></tbody>
         </table>
@@ -505,11 +582,79 @@
 </div>
 
 <script>
-    // ==================== DATABASE (LocalStorage) ====================
+    // ==================== DATABASE ====================
     let users = JSON.parse(localStorage.getItem('botcraft_users')) || [];
     let currentUser = JSON.parse(sessionStorage.getItem('botcraft_current_user')) || null;
+    
+    // Bot templates (disimpan admin)
+    let botTemplates = JSON.parse(localStorage.getItem('botcraft_templates')) || {
+        whatsapp: `// WhatsApp Bot Template
+const { Client, LocalAuth } = require('whatsapp-web.js');
+const qrcode = require('qrcode-terminal');
+const config = require('./config');
 
-    // Initialize default admin if not exists
+const client = new Client({
+    authStrategy: new LocalAuth({ dataPath: './sessions' })
+});
+
+client.on('qr', (qr) => {
+    console.log('📱 Scan QR Code:');
+    qrcode.generate(qr, { small: true });
+});
+
+client.on('ready', () => {
+    console.log('✅ Bot WhatsApp siap!');
+    console.log(\`Prefix: \${config.prefix}\`);
+});
+
+client.on('message', async (msg) => {
+    if (msg.fromMe) return;
+    if (msg.body.startsWith(config.prefix + 'ping')) {
+        await msg.reply('🏓 Pong!');
+    }
+});
+
+client.initialize();
+console.log('🚀 Bot WhatsApp berjalan...');`,
+        telegram: `// Telegram Bot Template
+const TelegramBot = require('node-telegram-bot-api');
+const config = require('./config');
+
+const bot = new TelegramBot(config.botToken, { polling: true });
+
+bot.onText(/\\/start/, (msg) => {
+    bot.sendMessage(msg.chat.id, 'Halo! Bot Telegram siap digunakan.');
+});
+
+bot.onText(/\\/ping/, (msg) => {
+    bot.sendMessage(msg.chat.id, '🏓 Pong!');
+});
+
+console.log('🚀 Bot Telegram berjalan...');`,
+        discord: `// Discord Bot Template
+const { Client, GatewayIntentBits } = require('discord.js');
+const config = require('./config');
+
+const client = new Client({
+    intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages, GatewayIntentBits.MessageContent]
+});
+
+client.once('ready', () => {
+    console.log(\`✅ Bot Discord siap sebagai \${client.user.tag}\`);
+});
+
+client.on('messageCreate', async (msg) => {
+    if (msg.author.bot) return;
+    if (msg.content.startsWith(config.prefix + 'ping')) {
+        await msg.reply('🏓 Pong!');
+    }
+});
+
+client.login(config.botToken);
+console.log('🚀 Bot Discord berjalan...');`
+    };
+
+    // Init admin default
     if (!users.find(u => u.role === 'admin')) {
         users.push({
             id: Date.now(),
@@ -526,16 +671,22 @@
         });
         localStorage.setItem('botcraft_users', JSON.stringify(users));
     }
+    localStorage.setItem('botcraft_templates', JSON.stringify(botTemplates));
 
     function saveUsers() { localStorage.setItem('botcraft_users', JSON.stringify(users)); }
     function saveCurrentUser() { if(currentUser) sessionStorage.setItem('botcraft_current_user', JSON.stringify(currentUser)); }
+    function saveTemplates() { localStorage.setItem('botcraft_templates', JSON.stringify(botTemplates)); }
 
-    // Helper random string
-    function randomString(len) {
-        return Math.random().toString(36).substring(2, 2+len);
+    function showToast(msg, type = 'success') {
+        const toast = document.createElement('div');
+        toast.className = `toast ${type}`;
+        toast.innerHTML = `<i class="fas ${type==='success'?'fa-check-circle':'fa-exclamation-triangle'}"></i> ${msg}`;
+        document.body.appendChild(toast);
+        setTimeout(() => toast.remove(), 3000);
     }
 
-    // Generate Pterodactyl credentials for new premium user
+    function randomString(len) { return Math.random().toString(36).substring(2, 2+len); }
+
     function generatePremiumCredentials(email) {
         const prefix = email.split('@')[0].replace(/[^a-z0-9]/gi, '').substring(0, 8);
         return {
@@ -546,16 +697,7 @@
         };
     }
 
-    // Toast function
-    function showToast(msg, type = 'success') {
-        const toast = document.createElement('div');
-        toast.className = `toast ${type}`;
-        toast.innerHTML = `<i class="fas ${type==='success'?'fa-check-circle':'fa-exclamation-triangle'}"></i> ${msg}`;
-        document.body.appendChild(toast);
-        setTimeout(() => toast.remove(), 3000);
-    }
-
-    // ==================== AUTH UI ====================
+    // ==================== AUTH ====================
     const authContainer = document.getElementById('authContainer');
     const mainApp = document.getElementById('mainApp');
     const authTitle = document.getElementById('authTitle');
@@ -585,7 +727,6 @@
             nameGroup.style.display = 'block';
         }
     }
-
     switchBtn.onclick = switchMode;
 
     function handleAuth() {
@@ -624,17 +765,15 @@
             switchMode();
         }
     }
-
     authSubmitBtn.onclick = handleAuth;
 
-    // Logout
     document.getElementById('logoutBtn')?.addEventListener('click', () => {
         sessionStorage.removeItem('botcraft_current_user');
         currentUser = null;
         location.reload();
     });
 
-    // ==================== RENDER APP AFTER LOGIN ====================
+    // ==================== RENDER APP ====================
     function renderApp() {
         if (!currentUser) {
             authContainer.style.display = 'flex';
@@ -646,7 +785,6 @@
         
         document.getElementById('userNameDisplay').innerHTML = `<i class="fas fa-user"></i> ${currentUser.fullname || currentUser.email}`;
         
-        // Show admin button if role admin
         const adminBtn = document.getElementById('adminPanelBtn');
         if (currentUser.role === 'admin') {
             adminBtn.style.display = 'inline-block';
@@ -661,10 +799,10 @@
         if (currentUser.isPremium) {
             notPremiumBox.style.display = 'none';
             premiumBox.style.display = 'block';
-            document.getElementById('pterodactylPanel').innerText = currentUser.pterodactylPanel || 'https://panel.botcraftpro.com';
-            document.getElementById('userDomain').innerText = currentUser.userDomain || 'belum disediakan';
-            document.getElementById('panelUsername').innerText = currentUser.panelUsername || 'belum disediakan';
-            document.getElementById('panelPassword').innerText = currentUser.panelPassword || 'belum disediakan';
+            document.getElementById('pterodactylPanel').innerText = currentUser.pterodactylPanel || '-';
+            document.getElementById('userDomain').innerText = currentUser.userDomain || '-';
+            document.getElementById('panelUsername').innerText = currentUser.panelUsername || '-';
+            document.getElementById('panelPassword').innerText = currentUser.panelPassword || '-';
         } else {
             notPremiumBox.style.display = 'block';
             premiumBox.style.display = 'none';
@@ -672,7 +810,6 @@
         
         // Pay button
         document.getElementById('payNowBtnMain')?.addEventListener('click', () => {
-            // Simulasi pembayaran (karena static, kita buat popup QRIS)
             const modal = document.createElement('div');
             modal.style.position = 'fixed';
             modal.style.top = '0';
@@ -698,9 +835,7 @@
             `;
             document.body.appendChild(modal);
             document.getElementById('confirmPayBtn').onclick = () => {
-                // Generate premium credentials
                 const creds = generatePremiumCredentials(currentUser.email);
-                // Update user in database
                 const userIndex = users.findIndex(u => u.id === currentUser.id);
                 if (userIndex !== -1) {
                     users[userIndex].isPremium = true;
@@ -726,38 +861,109 @@
             if (currentUser.role !== 'admin') return;
             const modal = document.getElementById('adminModal');
             const tbody = document.getElementById('adminUserList');
-            tbody.innerHTML = users.map(u => `
-                <tr>
-                    <td>${u.email}</td>
-                    <td>${u.fullname || '-'}</td>
-                    <td>${u.role || 'user'}</td>
-                    <td>${u.isPremium ? '<span style="color:#10b981;">✓ Premium</span>' : '<span style="color:#f59e0b;">✗ Free</span>'}</td>
-                    <td style="font-size:0.6rem;">${u.isPremium ? (u.userDomain || '-') : '-'}</td>
-                    <td>${u.role !== 'admin' ? `<button class="delete-user" data-id="${u.id}">Hapus</button>` : '-'}</td>
-                </tr>
-            `).join('');
+            
+            // Load templates ke form
+            document.getElementById('adminWhatsAppTemplate').value = botTemplates.whatsapp;
+            document.getElementById('adminTelegramTemplate').value = botTemplates.telegram;
+            document.getElementById('adminDiscordTemplate').value = botTemplates.discord;
+            
+            function renderUserTable() {
+                tbody.innerHTML = users.map(u => `
+                    <tr data-user-id="${u.id}">
+                        <td>${u.email}</td>
+                        <td>${u.fullname || '-'}</td>
+                        <td>${u.role || 'user'}</td>
+                        <td>${u.isPremium ? '<span style="color:#10b981;">✓ Premium</span>' : '<span style="color:#f59e0b;">✗ Free</span>'}</td>
+                        <td class="edit-panel" data-field="pterodactylPanel">${u.pterodactylPanel || '-'}</td>
+                        <td class="edit-domain" data-field="userDomain">${u.userDomain || '-'}</td>
+                        <td class="edit-username" data-field="panelUsername">${u.panelUsername || '-'}</td>
+                        <td class="edit-password" data-field="panelPassword">${u.panelPassword || '-'}</td>
+                        <td>
+                            <button class="edit-btn" data-id="${u.id}"><i class="fas fa-edit"></i> Edit</button>
+                            ${u.role !== 'admin' ? `<button class="delete-user" data-id="${u.id}"><i class="fas fa-trash"></i> Hapus</button>` : ''}
+                        </td>
+                    </tr>
+                `).join('');
+                
+                // Edit button handlers
+                document.querySelectorAll('.edit-btn').forEach(btn => {
+                    btn.onclick = () => {
+                        const userId = parseInt(btn.dataset.id);
+                        const user = users.find(u => u.id === userId);
+                        if (!user) return;
+                        const row = btn.closest('tr');
+                        const fields = ['pterodactylPanel', 'userDomain', 'panelUsername', 'panelPassword'];
+                        fields.forEach(field => {
+                            const cell = row.querySelector(`[data-field="${field}"]`);
+                            if (cell) {
+                                const currentValue = user[field] || '';
+                                cell.innerHTML = `<input type="text" class="edit-input" value="${currentValue.replace(/"/g, '&quot;')}" style="width:100%;">`;
+                            }
+                        });
+                        btn.innerText = 'Save';
+                        btn.classList.add('save-edit');
+                        btn.classList.remove('edit-btn');
+                        btn.onclick = () => {
+                            const newValues = {};
+                            fields.forEach(field => {
+                                const input = row.querySelector(`[data-field="${field}"] input`);
+                                if (input) newValues[field] = input.value;
+                            });
+                            const userIndex = users.findIndex(u => u.id === userId);
+                            if (userIndex !== -1) {
+                                users[userIndex] = { ...users[userIndex], ...newValues };
+                                saveUsers();
+                                if (currentUser.id === userId) {
+                                    currentUser = { ...users[userIndex] };
+                                    delete currentUser.password;
+                                    saveCurrentUser();
+                                }
+                                showToast(`Data user ${user.email} berhasil diupdate!`);
+                                renderUserTable();
+                            }
+                        };
+                    };
+                });
+                
+                document.querySelectorAll('.delete-user').forEach(btn => {
+                    btn.onclick = () => {
+                        const id = parseInt(btn.dataset.id);
+                        if (confirm('Hapus user ini?')) {
+                            users = users.filter(u => u.id !== id);
+                            saveUsers();
+                            if (currentUser.id === id) {
+                                sessionStorage.removeItem('botcraft_current_user');
+                                location.reload();
+                            } else {
+                                renderUserTable();
+                            }
+                            showToast('User dihapus!');
+                        }
+                    };
+                });
+            }
+            
+            renderUserTable();
             modal.style.display = 'block';
-            document.querySelectorAll('.delete-user').forEach(btn => {
-                btn.onclick = () => {
-                    const id = parseInt(btn.dataset.id);
-                    users = users.filter(u => u.id !== id);
-                    saveUsers();
-                    if (currentUser.id === id) {
-                        sessionStorage.removeItem('botcraft_current_user');
-                        location.reload();
-                    } else {
-                        renderApp();
-                        document.getElementById('adminPanelBtn').click();
-                    }
-                };
-            });
         });
+        
         document.getElementById('closeAdminBtn')?.addEventListener('click', () => {
             document.getElementById('adminModal').style.display = 'none';
         });
+        
+        // Save templates
+        document.getElementById('saveTemplatesBtn')?.addEventListener('click', () => {
+            botTemplates = {
+                whatsapp: document.getElementById('adminWhatsAppTemplate').value,
+                telegram: document.getElementById('adminTelegramTemplate').value,
+                discord: document.getElementById('adminDiscordTemplate').value
+            };
+            saveTemplates();
+            showToast('Template bot berhasil disimpan!');
+        });
     }
 
-    // ==================== BOT GENERATOR (Sederhana) ====================
+    // ==================== BOT GENERATOR ====================
     let currentPlatform = "whatsapp";
     let currentConfigTab = "basic";
     let currentFileTab = "index";
@@ -771,31 +977,110 @@
     function renderFields() {
         let html = '';
         if (currentConfigTab === 'basic') {
-            html = `<div class="input-group-sm"><label>Prefix Command</label><input type="text" id="prefix" value="!"></div>
-                    <div class="input-group-sm"><label>Owner ID / Nomor</label><input type="text" id="owner" value="6281234567890"></div>
-                    ${currentPlatform === 'whatsapp' ? '<div class="input-group-sm"><label>Session Name</label><input type="text" id="session" value="wa-session"></div>' : ''}
-                    ${currentPlatform !== 'whatsapp' ? '<div class="input-group-sm"><label>Bot Token</label><input type="text" id="token" value="YOUR_TOKEN_HERE"></div>' : ''}`;
+            html = `<div class="input-group-sm"><label>🔧 Prefix Command</label><input type="text" id="prefix" value="!"></div>
+                    <div class="input-group-sm"><label>👑 Owner ID / Nomor</label><input type="text" id="owner" value="6281234567890"></div>
+                    ${currentPlatform === 'whatsapp' ? '<div class="input-group-sm"><label>📱 Session Name</label><input type="text" id="session" value="wa-session"></div>' : ''}
+                    ${currentPlatform !== 'whatsapp' ? '<div class="input-group-sm"><label>🤖 Bot Token</label><input type="text" id="token" value="YOUR_TOKEN_HERE"></div>' : ''}`;
         } else if (currentConfigTab === 'auth' && currentPlatform === 'whatsapp') {
-            html = `<div class="checkbox-group"><input type="radio" name="auth" value="qr" checked> QR Code</div>
-                    <div class="checkbox-group"><input type="radio" name="auth" value="pairing"> Pairing Code</div>
-                    <div class="input-group-sm"><label>Nomor (untuk pairing)</label><input type="text" id="pairingNumber"></div>`;
+            html = `<div class="radio-group">
+                        <label><input type="radio" name="auth" value="qr" checked> 📱 QR Code</label>
+                        <label><input type="radio" name="auth" value="pairing"> 🔑 Pairing Code</label>
+                    </div>
+                    <div class="input-group-sm"><label>📞 Nomor (untuk pairing)</label><input type="text" id="pairingNumber"></div>`;
         } else if (currentConfigTab === 'security') {
-            html = `<div class="checkbox-group"><input type="checkbox" id="antiLink"> Anti Link</div>
-                    <div class="checkbox-group"><input type="checkbox" id="antiSpam"> Anti Spam (3 pesan/detik)</div>`;
+            html = `<div class="checkbox-group"><input type="checkbox" id="antiLink"> 🔗 Anti Link (blokir pesan berisi link)</div>
+                    <div class="checkbox-group"><input type="checkbox" id="antiSpam"> 🚫 Anti Spam (batas 3 pesan/detik)</div>
+                    <div class="input-group-sm"><label>⏱️ Mute duration (detik)</label><input type="number" id="muteDur" value="30"></div>
+                    <div class="checkbox-group"><input type="checkbox" id="antiBadword"> 🤬 Filter Kata Kasar</div>
+                    <div class="input-group-sm"><label>📝 Daftar kata kasar (pisah koma)</label><input type="text" id="badwords" value="anjing,setan,bangsat"></div>`;
         } else {
-            html = `<div class="checkbox-group"><input type="checkbox" id="autoReply"> Auto Reply</div>
-                    <div class="input-group-sm"><label>Rules (kata => respon)</label><textarea id="rules" rows="2">halo => Hai juga!</textarea></div>`;
+            html = `<div class="checkbox-group"><input type="checkbox" id="autoReply"> 🤖 Auto Reply</div>
+                    <div class="input-group-sm"><label>📝 Aturan (kata => respon)</label><textarea id="rules" rows="3">halo => Hai juga!\npagi => Selamat pagi\nhelp => Bot siap membantu!</textarea></div>
+                    <div class="input-group-sm"><label>💬 Respon default</label><input type="text" id="defaultReply" value="Maaf, saya tidak mengerti."></div>`;
         }
         dynamicFields.innerHTML = html;
     }
     
-    function generateSimpleCode() {
-        const prefix = document.getElementById('prefix')?.value || '!';
-        generatedContent = {
-            index: `// Bot ${currentPlatform} dengan prefix ${prefix}\nconsole.log('Bot siap!');`,
-            config: `module.exports = { prefix: "${prefix}" }`,
-            package: `{"name":"bot","scripts":{"start":"node index.js"}}`
+    function getConfigValues() {
+        return {
+            prefix: document.getElementById('prefix')?.value || '!',
+            owner: document.getElementById('owner')?.value || '6281234567890',
+            session: document.getElementById('session')?.value || 'wa-session',
+            token: document.getElementById('token')?.value || 'YOUR_TOKEN_HERE',
+            authMethod: document.querySelector('input[name="auth"]:checked')?.value || 'qr',
+            pairingNumber: document.getElementById('pairingNumber')?.value || '',
+            antiLink: document.getElementById('antiLink')?.checked || false,
+            antiSpam: document.getElementById('antiSpam')?.checked || false,
+            muteDur: document.getElementById('muteDur')?.value || 30,
+            antiBadword: document.getElementById('antiBadword')?.checked || false,
+            badwords: document.getElementById('badwords')?.value || '',
+            autoReply: document.getElementById('autoReply')?.checked || false,
+            rules: document.getElementById('rules')?.value || '',
+            defaultReply: document.getElementById('defaultReply')?.value || 'Maaf, saya tidak mengerti.'
         };
+    }
+    
+    function parseRules(rulesText) {
+        const rules = [];
+        rulesText.split('\n').forEach(line => {
+            if (line.includes('=>')) {
+                let [k, v] = line.split('=>').map(s => s.trim());
+                if (k && v) rules.push({ keyword: k.toLowerCase(), response: v });
+            }
+        });
+        return rules;
+    }
+    
+    function generateCustomCode() {
+        const cfg = getConfigValues();
+        const platform = currentPlatform;
+        let template = botTemplates[platform] || `// ${platform} Bot\nconsole.log('Bot siap!');`;
+        
+        // Replace placeholders dengan config user
+        let finalCode = template
+            .replace(/config\.prefix/g, `"${cfg.prefix}"`)
+            .replace(/config\.botToken/g, `"${cfg.token}"`)
+            .replace(/config\.ownerId/g, `"${cfg.owner}"`);
+        
+        // Tambahkan fitur tambahan jika diaktifkan
+        let additionalFeatures = '';
+        if (cfg.antiLink) {
+            additionalFeatures += `
+// Anti Link
+function containsLink(text) {
+    return /(https?:\\/\\/|www\\.)/i.test(text);
+}
+if (containsLink(msg.body)) {
+    await msg.reply('⚠️ Link tidak diperbolehkan!');
+    return;
+}
+`;
+        }
+        
+        const configJs = `module.exports = {
+    prefix: "${cfg.prefix}",
+    ownerId: "${cfg.owner}",
+    ${platform !== 'whatsapp' ? `botToken: "${cfg.token}",` : `sessionName: "${cfg.session}",`}
+    antiLink: ${cfg.antiLink},
+    antiSpam: ${cfg.antiSpam},
+    autoReply: ${cfg.autoReply}
+};`;
+        
+        const packageJson = `{
+  "name": "${platform}-bot",
+  "version": "1.0.0",
+  "description": "Bot ${platform} dari BotCraft Pro",
+  "main": "index.js",
+  "scripts": { "start": "node index.js" },
+  "dependencies": ${platform === 'whatsapp' ? `{ "whatsapp-web.js": "^1.23.0", "qrcode-terminal": "^0.12.0" }` : platform === 'telegram' ? `{ "node-telegram-bot-api": "^0.64.0" }` : `{ "discord.js": "^14.14.1" }`}
+}`;
+        
+        generatedContent = {
+            index: finalCode + additionalFeatures,
+            config: configJs,
+            package: JSON.stringify(JSON.parse(packageJson), null, 2)
+        };
+        
         document.getElementById('indexCode').innerText = generatedContent.index;
         document.getElementById('configCode').innerText = generatedContent.config;
         document.getElementById('packageCode').innerText = generatedContent.package;
@@ -804,8 +1089,18 @@
     
     function downloadAll() {
         if(!generatedContent.index) { showToast('Generate dulu!', 'error'); return; }
-        const files = [{name:'index.js', content:generatedContent.index},{name:'config.js', content:generatedContent.config},{name:'package.json', content:generatedContent.package}];
-        files.forEach(f=>{ const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([f.content])); a.download=f.name; a.click(); URL.revokeObjectURL(a.href); });
+        const files = [
+            { name: 'index.js', content: generatedContent.index },
+            { name: 'config.js', content: generatedContent.config },
+            { name: 'package.json', content: generatedContent.package }
+        ];
+        files.forEach(f => {
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(new Blob([f.content]));
+            a.download = f.name;
+            a.click();
+            URL.revokeObjectURL(a.href);
+        });
         showToast('Download dimulai!');
     }
     
@@ -816,28 +1111,30 @@
         showToast('Tersalin!');
     }
     
-    // Event binding untuk generator
-    if (generateBtn) generateBtn.onclick = generateSimpleCode;
+    // Event binding generator
+    if (generateBtn) generateBtn.onclick = generateCustomCode;
     if (downloadBtn) downloadBtn.onclick = downloadAll;
     if (copyBtn) copyBtn.onclick = copyCurrent;
     
     document.querySelectorAll('.plat-btn').forEach(btn => btn.addEventListener('click', () => {
-        document.querySelectorAll('.plat-btn').forEach(b=>b.classList.remove('active'));
+        document.querySelectorAll('.plat-btn').forEach(b => b.classList.remove('active'));
         btn.classList.add('active');
-        currentPlatform = btn.innerText.toLowerCase().replace('whatsapp','whatsapp').replace('telegram','telegram').replace('discord','discord');
+        currentPlatform = btn.dataset.platform;
         renderFields();
     }));
+    
     document.querySelectorAll('.config-tab-btn').forEach(btn => btn.addEventListener('click', () => {
-        document.querySelectorAll('.config-tab-btn').forEach(b=>b.classList.remove('active'));
+        document.querySelectorAll('.config-tab-btn').forEach(b => b.classList.remove('active'));
         btn.classList.add('active');
         currentConfigTab = btn.dataset.config;
         renderFields();
     }));
+    
     document.querySelectorAll('.tab-btn').forEach(btn => btn.addEventListener('click', () => {
-        document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
         btn.classList.add('active');
         currentFileTab = btn.dataset.tab;
-        document.querySelectorAll('.code-block').forEach(b=>b.classList.remove('active'));
+        document.querySelectorAll('.code-block').forEach(b => b.classList.remove('active'));
         document.getElementById(`${currentFileTab}Code`).classList.add('active');
     }));
     
